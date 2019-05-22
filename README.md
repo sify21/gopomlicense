@@ -1,5 +1,5 @@
 ## gopomlicense
-A util for finding dependency licenses of your maven project.   
+A utility for finding licenses of the dependencies used in your maven project.   
 It fetches license info from maven repository.
 ## Usage
       --help             show help message
