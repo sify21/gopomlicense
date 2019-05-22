@@ -20,16 +20,6 @@ func main() {
 	if viper.GetBool("help") || viper.GetString(config.POM_FILE) == "" {
 		pflag.PrintDefaults()
 	} else {
-		//pomFile, err := os.Open(viper.GetString("pomFile"))
-		//if err != nil {
-		//	log.Fatalf("error open pom file. %v", err)
-		//}
-		//defer pomFile.Close()
-		//var project pom.Project
-		//if err = xml.NewDecoder(pomFile).Decode(&project); err != nil {
-		//	log.Fatalf("error decode pom file. %v", err)
-		//}
-		//log.Printf("%+v", project)
 		artifacts := pom.ListDep(viper.GetString(config.MVN_CMD), viper.GetString(config.POM_FILE))
 		var errArtifacts []pom.Artifact
 		ch := make(chan interface{}, len(artifacts))
