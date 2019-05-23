@@ -32,27 +32,7 @@ func main() {
 		var projectsWithoutLicense []pom.Project
 		ch := make(chan interface{}, len(artifacts))
 		for _, v := range artifacts {
-			a := v
-			go func() {
-				result, err := pom.Fetch(viper.GetString(config.MAVEN_URL), a, func(response *http.Response) (interface{}, error) {
-					var project pom.Project
-					decoder := xml.NewDecoder(response.Body)
-					decoder.CharsetReader = charset.NewReaderLabel
-					if err := decoder.Decode(&project); err != nil {
-						return nil, err
-					}
-					return project, nil
-				})
-				if err != nil {
-					log.Printf("fetch pom error. %+v %v", a, err)
-					ch <- a
-				} else if project, ok := result.(pom.Project); ok {
-					ch <- project
-				} else {
-					log.Printf("fetch pom error. %+v %s", a, "can't convert to project")
-					ch <- a
-				}
-			}()
+			go FetchMavenLicense(ch, v)
 		}
 		for i := 0; i < len(artifacts); i++ {
 			ret := <-ch
@@ -96,5 +76,38 @@ func main() {
 			}
 			fmt.Print(before + licStr + after)
 		}
+	}
+}
+
+func FetchMavenLicense(ch chan interface{}, a pom.Artifact) {
+	result, err := pom.FetchPom(viper.GetString(config.MAVEN_URL), a, func(response *http.Response) (interface{}, error) {
+		var project pom.Project
+		decoder := xml.NewDecoder(response.Body)
+		decoder.CharsetReader = charset.NewReaderLabel
+		if err := decoder.Decode(&project); err != nil {
+			return nil, err
+		}
+		return project, nil
+	})
+	if err != nil {
+		log.Printf("fetch license error. %+v %v", a, err)
+		ch <- a
+	} else if project, ok := result.(pom.Project); ok {
+		if len(project.Licenses) > 0 {
+			ch <- project
+		} else if project.ParentGroupId != "" {
+			parent := pom.Artifact{
+				GroupId:    project.ParentGroupId,
+				ArtifactId: project.ParentArtifactId,
+				Version:    project.ParentVersion,
+			}
+			FetchMavenLicense(ch, parent)
+		} else {
+			log.Printf("fetch license error. %s license not found", project.String())
+			ch <- project
+		}
+	} else {
+		log.Printf("fetch license error. %+v %s", a, "can't convert to project")
+		ch <- a
 	}
 }

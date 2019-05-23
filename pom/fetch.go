@@ -6,7 +6,7 @@ import (
 	"strings"
 )
 
-func Fetch(mvnUrl string, artifact Artifact, converter ConverterFunc) (interface{}, error) {
+func FetchPom(mvnUrl string, artifact Artifact, converter ConverterFunc) (interface{}, error) {
 	orgPath := strings.ReplaceAll(artifact.GroupId, ".", "/")
 	pomFile := artifact.ArtifactId + "-" + artifact.Version + ".pom"
 	if !strings.HasSuffix(mvnUrl, "/") {
