@@ -68,11 +68,11 @@ func main() {
 			}
 		}
 		log.Printf("Finished. Total: %d, Success: %d", len(artifacts), len(projectsWithLicense))
-		log.Println("Failed artifact: ")
+		log.Printf("There are %d artifacts that failed to parse: \n", len(errArtifacts))
 		for _, v := range errArtifacts {
 			fmt.Println("\t" + v.String())
 		}
-		log.Println("artifacts that don't have license info")
+		log.Printf("There are %d artifacts that don't have license info: \n", len(projectsWithoutLicense))
 		for _, v := range projectsWithoutLicense {
 			fmt.Println("\t" + v.String())
 		}
