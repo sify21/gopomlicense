@@ -3,6 +3,7 @@ package pom
 import (
 	"bufio"
 	"bytes"
+	"fmt"
 	"io"
 	"log"
 	"os/exec"
@@ -14,6 +15,10 @@ type Artifact struct {
 	GroupId    string
 	ArtifactId string
 	Version    string
+}
+
+func (a Artifact) String() string {
+	return fmt.Sprintf("{%s %s %s}", a.GroupId, a.ArtifactId, a.Version)
 }
 
 func ListDep(mvnCmd, pomFile string) []Artifact {

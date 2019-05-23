@@ -2,19 +2,25 @@ package main
 
 import (
 	"encoding/xml"
+	"fmt"
 	"github.com/sify21/gopomlicense/config"
 	"github.com/sify21/gopomlicense/pom"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
+	"golang.org/x/net/html/charset"
 	"log"
 	"net/http"
+	"regexp"
+	"strconv"
+	"strings"
 )
 
 func main() {
 	pflag.String(config.MAVEN_URL, "http://central.maven.org/maven2/", "maven repository url for retrieving pom file")
-	pflag.String(config.POM_FILE, "", "pom file absolute path")
+	pflag.String(config.POM_FILE, "", "pom file (absolute path)")
 	pflag.Bool("help", false, "show help message")
 	pflag.String(config.MVN_CMD, "mvn", "maven command location")
+	pflag.String(config.FORMAT, "%i. %nArtifact Name: %a%n(License: %b%nLicense Url: %c%n)----%n", "output format.\n\t%n: new line\n\t%i: artifact index(begin from 1)\n\t%a: artifact name\n\t(): license related format should be put in()\n\t%b: license name\n\t%c: license url\n\t")
 	pflag.Parse()
 	viper.BindPFlags(pflag.CommandLine)
 	if viper.GetBool("help") || viper.GetString(config.POM_FILE) == "" {
@@ -22,13 +28,17 @@ func main() {
 	} else {
 		artifacts := pom.ListDep(viper.GetString(config.MVN_CMD), viper.GetString(config.POM_FILE))
 		var errArtifacts []pom.Artifact
+		var projectsWithLicense []pom.Project
+		var projectsWithoutLicense []pom.Project
 		ch := make(chan interface{}, len(artifacts))
 		for _, v := range artifacts {
 			a := v
 			go func() {
 				result, err := pom.Fetch(viper.GetString(config.MAVEN_URL), a, func(response *http.Response) (interface{}, error) {
 					var project pom.Project
-					if err := xml.NewDecoder(response.Body).Decode(&project); err != nil {
+					decoder := xml.NewDecoder(response.Body)
+					decoder.CharsetReader = charset.NewReaderLabel
+					if err := decoder.Decode(&project); err != nil {
 						return nil, err
 					}
 					return project, nil
@@ -50,13 +60,41 @@ func main() {
 			case pom.Artifact:
 				errArtifacts = append(errArtifacts, res)
 			case pom.Project:
-				log.Printf("license info %+v", res)
+				if len(res.Licenses) > 0 {
+					projectsWithLicense = append(projectsWithLicense, res)
+				} else {
+					projectsWithoutLicense = append(projectsWithoutLicense, res)
+				}
 			}
 		}
-		log.Printf("Finished. Total: %d, Success: %d, Fail: %d", len(artifacts), len(artifacts)-len(errArtifacts), len(errArtifacts))
+		log.Printf("Finished. Total: %d, Success: %d", len(artifacts), len(projectsWithLicense))
 		log.Println("Failed artifact: ")
 		for _, v := range errArtifacts {
-			log.Printf("%v", v)
+			fmt.Println("\t" + v.String())
+		}
+		log.Println("artifacts that don't have license info")
+		for _, v := range projectsWithoutLicense {
+			fmt.Println("\t" + v.String())
+		}
+		log.Println("Formatted output: ")
+		format := viper.GetString(config.FORMAT)
+		reg, _ := regexp.Compile(`(.*)\((.*)\)(.*)`)
+		ff := reg.FindStringSubmatch(format)
+		artifactFormatBefore := strings.ReplaceAll(ff[1], "%n", "\n")
+		licenseFormat := strings.ReplaceAll(ff[2], "%n", "\n")
+		artifactFormatAfter := strings.ReplaceAll(ff[3], "%n", "\n")
+		for k, v := range projectsWithLicense {
+			before := strings.ReplaceAll(artifactFormatBefore, "%i", strconv.FormatInt(int64(k+1), 10))
+			after := strings.ReplaceAll(artifactFormatAfter, "%i", strconv.FormatInt(int64(k+1), 10))
+			before = strings.ReplaceAll(before, "%a", v.Name)
+			after = strings.ReplaceAll(after, "%a", v.Name)
+			licStr := ""
+			for _, l := range v.Licenses {
+				lic := strings.ReplaceAll(licenseFormat, "%b", l.Name)
+				lic = strings.ReplaceAll(lic, "%c", l.Url)
+				licStr += lic
+			}
+			fmt.Print(before + licStr + after)
 		}
 	}
 }
