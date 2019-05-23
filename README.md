@@ -15,3 +15,18 @@ It fetches license info from maven repository.
       --mvnCmd string    maven command location (default "mvn")
       --mvnUrl string    maven repository url for retrieving pom file (default "http://central.maven.org/maven2/")
       --pomFile string   pom file (absolute path)
+## Sample output
+```
+1. 
+Artifact Name: MySQL Connector/J
+Website: http://dev.mysql.com/doc/connector-j/en/
+License: The GNU General Public License, Version 2
+License Url: http://www.gnu.org/licenses/old-licenses/gpl-2.0.html
+----
+2. 
+Artifact Name: spring-security-core
+Website: http://spring.io/spring-security
+License: The Apache Software License, Version 2.0
+License Url: http://www.apache.org/licenses/LICENSE-2.0.txt
+----
+```
