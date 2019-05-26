@@ -16,6 +16,7 @@ It fetches license info from maven repository.
       --mvnUrl string    maven repository url for retrieving pom file (default "http://central.maven.org/maven2/")
       --pomFile string   pom file (absolute path)
 ## Sample output
+With the default format string (%i. %nArtifact Name: %a%nWebsite: %d%n(License: %b%nLicense Url: %c%n)----%n)
 ```
 1. 
 Artifact Name: MySQL Connector/J
