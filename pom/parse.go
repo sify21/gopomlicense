@@ -22,7 +22,7 @@ func (a Artifact) String() string {
 }
 
 func ListDep(mvnCmd, pomFile string) []Artifact {
-	cmd := exec.Command(mvnCmd, "dependency:list", "-DexcludeTransitive")
+	cmd := exec.Command(mvnCmd, "clean", "compile", "dependency:list", "-DexcludeTransitive")
 	cmd.Dir = filepath.Dir(pomFile)
 	if out, err := cmd.Output(); err != nil {
 		log.Fatalf("run mvn command error. %v", err)
